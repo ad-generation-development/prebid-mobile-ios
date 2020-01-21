@@ -11,6 +11,7 @@ def prebid_demo_pods
   use_frameworks!
   
   pod 'Google-Mobile-Ads-SDK'
+  pod 'AdGeneration'
   pod 'mopub-ios-sdk'
 end
 

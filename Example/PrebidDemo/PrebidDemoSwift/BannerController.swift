@@ -21,6 +21,8 @@ import GoogleMobileAds
 
 import MoPub
 
+import ADG
+
 enum BannerFormat: Int {
     case html
     case vast
@@ -43,6 +45,8 @@ class BannerController: UIViewController, GADBannerViewDelegate, MPAdViewDelegat
     var mpBanner: MPAdView?
     
     var amBanner: DFPBannerView!
+    
+    var adgBanner: ADGManagerViewController!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -69,7 +73,9 @@ class BannerController: UIViewController, GADBannerViewDelegate, MPAdViewDelegat
         } else if (adServerName == "MoPub") {
             print("entered \(adServerName) loop" )
             loadMoPubBanner()
-
+        } else if (adServerName == "ADG") {
+            print ("enterd \(adServerName) loop")
+            loadADGBanner()
         }
     }
 
@@ -162,6 +168,19 @@ class BannerController: UIViewController, GADBannerViewDelegate, MPAdViewDelegat
             self.mpBanner!.loadAd(withMaxAdSize: CGSize(width: 300,height: 250))
         }
 
+    }
+    
+    func loadADGBanner() {
+        setupPBBanner()
+        
+        adgBanner = ADGManagerViewController(locationID: "83561", adType: .adType_Sp, rootViewController: self)
+        adgBanner!.addAdContainerView(self.appBannerView)
+        adgBanner!.delegate = self
+        
+        adUnit.fetchDemand(adObject: adgBanner!) { (resultCode: ResultCode) in
+            print("Prebid demand fetch for ADG \(resultCode.name())")
+            self.adgBanner!.loadRequest()
+        }
     }
 
     override func didReceiveMemoryWarning() {

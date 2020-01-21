@@ -14,6 +14,8 @@
  */
 
 import Foundation
+import UIKit
+
 
 extension String {
 
@@ -34,6 +36,10 @@ extension String {
     public static let MoPub_Object_Name = "MPAdView"
 
     public static let MoPub_Interstitial_Name = "MPInterstitialAdController"
+    
+    public static let ADG_Object_Name = "ADG"
+    
+    public static let ADG_Interstitial_Name = "ADGInterstitial"
 }
 
 extension Double {

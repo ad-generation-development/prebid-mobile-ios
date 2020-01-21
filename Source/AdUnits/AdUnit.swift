@@ -12,6 +12,7 @@
 
 import Foundation
 import ObjectiveC.runtime
+import UIKit
 
 @objcMembers public class AdUnit: NSObject, DispatcherDelegate {
 

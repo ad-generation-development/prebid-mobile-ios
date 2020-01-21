@@ -22,6 +22,7 @@ class IndexController: UIViewController {
     @IBOutlet var bannerVideo: UIButton!
     @IBOutlet var interstitialVideo: UIButton!
     
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -35,6 +36,8 @@ class IndexController: UIViewController {
         case 0:
             bannerVideo.isHidden = false
         case 1:
+            bannerVideo.isHidden = true
+        case 2:
             bannerVideo.isHidden = true
             
         default:

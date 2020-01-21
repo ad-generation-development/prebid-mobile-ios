@@ -88,6 +88,22 @@ public class Utils: NSObject {
             }
         }
     }
+    
+    if (adServerObject == .ADG_Object_Name || adServerObject == .ADG_Interstitial_Name) {
+        let hasADGMember = adObject.responds(to: NSSelectorFromString(":setParams"))
+        
+        if (hasADGMember) {
+            if (adObject.value(forKey: "Params") != nil) {
+                var existingDict: [String: Any] = adObject.value(forKey: "Params") as! [String: Any]
+                for (key, _)in existingDict {
+                    if (key.starts(with: "hb_")) {
+                        existingDict[key] = nil
+                    }
+                }
+                adObject.setValue( existingDict, forKey: "customTargeting")
+            }
+        }
+    }
 }
 
 @objc func validateAndAttachKeywords (adObject: AnyObject, bidResponse: BidResponse) {
@@ -138,6 +154,22 @@ public class Utils: NSObject {
             Log.info("MoPub targeting keys are \(targetingKeywordsString)")
             adObject.setValue( targetingKeywordsString, forKey: "keywords")
 
+        }
+    }
+    
+    if (adServerObject == .ADG_Object_Name || adServerObject == .ADG_Interstitial_Name) {
+        let hasADGMember = adObject.responds(to: NSSelectorFromString(":setParams"))
+        
+        if (hasADGMember) {
+            if (adObject.value(forKey: "Params") != nil) {
+                var existingDict: [String: Any] = adObject.value(forKey: "Params") as! [String: Any]
+                for (key, _)in existingDict {
+                    if (key.starts(with: "hb_")) {
+                        existingDict[key] = nil
+                    }
+                }
+                adObject.setValue( existingDict, forKey: "customTargeting")
+            }
         }
     }
 }
