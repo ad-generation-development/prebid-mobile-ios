@@ -17,89 +17,38 @@ import UIKit
 
 import PrebidMobile
 
-import GoogleMobileAds
-
-import MoPub
-
 import ADG
 
-enum BannerFormat: Int {
-    case html
-    case vast
-}
 
-class BannerController: UIViewController, GADBannerViewDelegate, MPAdViewDelegate {
+class BannerController: UIViewController {
 
    @IBOutlet var appBannerView: UIView!
 
-    @IBOutlet var adServerLabel: UILabel!
-
-    var bannerFormat: BannerFormat = .html
     
-    var adServerName: String = ""
-
-    let request = DFPRequest()
 
     var adUnit: AdUnit!
-
-    var mpBanner: MPAdView?
-    
-    var amBanner: DFPBannerView!
     
     var adgBanner: ADGManagerViewController!
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        adServerLabel.text = adServerName
         
 //        enableCOPPA()
 //        addFirstPartyData(adUnit: bannerUnit)
 //        setStoredResponse()
 //        setRequestTimeoutMillis()
-
-        if (adServerName == "DFP") {
-            print("entered \(adServerName) loop" )
-            
-            switch bannerFormat {
-                
-            case .html:
-                setupAndLoadAMBanner()
-            case .vast:
-                setupAndLoadAMBannerVAST()
-            }
-            
-
-        } else if (adServerName == "MoPub") {
-            print("entered \(adServerName) loop" )
-            loadMoPubBanner()
-        } else if (adServerName == "ADG") {
-            print ("enterd \(adServerName) loop")
-            loadADGBanner()
-        }
+        loadADGBanner()
     }
 
     override func viewDidDisappear(_ animated: Bool) {
         // important to remove the time instance
         adUnit?.stopAutoRefresh()
     }
-
-    func setupAndLoadAMBanner() {
-        setupPBBanner()
-        
-        setupAMBanner()
-        
-        loadBanner()
-    }
     
-    func setupAndLoadAMBannerVAST() {
-        
-        setupPBBannerVAST()
-        
-        setupAMBannerVAST()
-
-        loadBanner()
+    override func viewDidAppear(_ animated: Bool) {
+        self.adgBanner?.resumeRefresh()
     }
+
     
     func setupPBBanner() {
         Prebid.shared.prebidServerHost = .Appnexus
@@ -110,70 +59,10 @@ class BannerController: UIViewController, GADBannerViewDelegate, MPAdViewDelegat
         adUnit.setAutoRefreshMillis(time: 35000)
     }
     
-    func setupPBBannerVAST() {
-        
-        Prebid.shared.prebidServerHost = .Rubicon
-        Prebid.shared.prebidServerAccountId = "1001"
-        Prebid.shared.storedAuctionResponse = "sample_video_response"
-        
-        adUnit = VideoAdUnit(configId: "1001-1", size: CGSize(width: 300, height: 250), type: .inBanner)
-    }
-    
-    func setupAMBanner() {
-        setupAMBanner(id: "/19968336/PrebidMobileValidator_Banner_All_Sizes")
-    }
-    
-    func setupAMBannerVAST() {
-        setupAMBanner(id: "/5300653/test_adunit_vast_pavliuchyk")
-    }
-    
-    func setupAMBanner(id: String) {
-        amBanner = DFPBannerView(adSize: kGADAdSizeMediumRectangle)
-        amBanner.adUnitID = id
-    }
-    
-    func loadBanner() {
-        print("Google Mobile Ads SDK version: \(DFPRequest.sdkVersion())")
-        
-        amBanner.rootViewController = self
-        amBanner.delegate = self
-        amBanner.backgroundColor = .red
-        appBannerView.addSubview(amBanner)
-
-        adUnit.fetchDemand(adObject: self.request) { [weak self] (resultCode: ResultCode) in
-            print("Prebid demand fetch for DFP \(resultCode.name())")
-            self?.amBanner!.load(self?.request)
-        }
-    }
-
-    func loadMoPubBanner() {
-        setupPBBanner()
-        
-        let sdkConfig = MPMoPubConfiguration(adUnitIdForAppInitialization: "a935eac11acd416f92640411234fbba6")
-        sdkConfig.globalMediationSettings = []
-
-        MoPub.sharedInstance().initializeSdk(with: sdkConfig) {
-
-        }
-
-        mpBanner = MPAdView(adUnitId: "a935eac11acd416f92640411234fbba6")
-        mpBanner!.delegate = self
-
-        appBannerView.addSubview(mpBanner!)
-
-        // Do any additional setup after loading the view, typically from a nib.
-        adUnit.fetchDemand(adObject: mpBanner!) { (resultCode: ResultCode) in
-            print("Prebid demand fetch for mopub \(resultCode.name())")
-
-            self.mpBanner!.loadAd(withMaxAdSize: CGSize(width: 300,height: 250))
-        }
-
-    }
-    
     func loadADGBanner() {
         setupPBBanner()
         
-        adgBanner = ADGManagerViewController(locationID: "83561", adType: .adType_Sp, rootViewController: self)
+        adgBanner = ADGManagerViewController(locationID: "48549", adType: .adType_Rect, rootViewController: self)
         adgBanner!.addAdContainerView(self.appBannerView)
         adgBanner!.delegate = self
         
@@ -225,44 +114,33 @@ class BannerController: UIViewController, GADBannerViewDelegate, MPAdViewDelegat
     func setRequestTimeoutMillis() {
         Prebid.shared.timeoutMillis = 5000
     }
-
-    func adViewDidReceiveAd(_ bannerView: GADBannerView) {
-        print("adViewDidReceiveAd")
-        
-        AdViewUtils.findPrebidCreativeSize(bannerView,
-                                            success: { (size) in
-                                                guard let bannerView = bannerView as? DFPBannerView else {
-                                                    return
-                                                }
-
-                                                bannerView.resize(GADAdSizeFromCGSize(size))
-
-        },
-                                            failure: { (error) in
-                                                print("error: \(error)");
-
-        })
+    deinit {
+        // インスタンスの破棄
+        adgBanner = nil
     }
-
-    func adView(_ bannerView: GADBannerView, didFailToReceiveAdWithError error: GADRequestError) {
-        print("adView:didFailToReceiveAdWithError: \(error.localizedDescription)")
-    }
-
-    func adViewDidReceiveAd(_ bannerView: DFPBannerView) {
-        print("adViewDidReceiveAd")
-        
-        self.amBanner.resize(bannerView.adSize)
-
-    }
-
-    /// Tells the delegate an ad request failed.
-    func adView(_ bannerView: DFPBannerView,
-                didFailToReceiveAdWithError error: GADRequestError) {
-        print("adView:didFailToReceiveAdWithError: \(error.localizedDescription)")
-    }
-
-    func viewControllerForPresentingModalView() -> UIViewController! {
-        return self
-    }
-
 }
+
+extension BannerController: ADGManagerViewControllerDelegate {
+    
+    func adgManagerViewControllerReceiveAd(_ adgManagerViewController: ADGManagerViewController) {
+        print("Received an ad.")
+    }
+    
+    func adgManagerViewControllerFailed(toReceiveAd adgManagerViewController: ADGManagerViewController, code: kADGErrorCode) {
+        print("Failed to receive an ad.")
+        // エラー時のリトライは特段の理由がない限り必ず記述するようにしてください。
+        switch code {
+        case .adgErrorCodeNeedConnection, // ネットワーク不通
+        .adgErrorCodeExceedLimit, // エラー多発
+        .adgErrorCodeNoAd: // 広告レスポンスなし
+            break
+        default:
+            adgManagerViewController.loadRequest()
+        }
+    }
+    
+    func adgManagerViewControllerDidTapAd(_ adgManagerViewController: ADGManagerViewController) {
+        print("Did tap an ad.")
+    }
+}
+

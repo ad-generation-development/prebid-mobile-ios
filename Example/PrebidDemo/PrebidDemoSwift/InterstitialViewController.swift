@@ -17,69 +17,24 @@ import UIKit
 
 import PrebidMobile
 
-import GoogleMobileAds
+import ADG
 
-import MoPub
-
-class InterstitialViewController: UIViewController, GADInterstitialDelegate, MPInterstitialAdControllerDelegate {
-
-    @IBOutlet var adServerLabel: UILabel!
-
-    var adServerName: String = ""
-
-    let request = GADRequest()
-
-    var amInterstitial: DFPInterstitial!
-
-    var mpInterstitial: MPInterstitialAdController!
+class InterstitialViewController: UIViewController {
     
     var adUnit: AdUnit!
+    var interstitial: ADGInterstitial?
     
-    var bannerFormat: BannerFormat = .html
-
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        adServerLabel.text = adServerName
-
-        if (adServerName == "DFP") {
-            print("entered \(adServerName) loop" )
-            
-            switch bannerFormat {
-            case .html:
-                setupAndLoadAMInterstitial()
-            case .vast:
-                setupAndLoadAMInterstitialVAST()
-            }
-
-        } else if (adServerName == "MoPub") {
-            print("entered \(adServerName) loop" )
-            
-            switch bannerFormat {
-            case .html:
-                setupAndLoadMPInterstitial()
-            case .vast:
-                setupAndLoadMPInterstitialVAST()
-            }
-        }
+        setupAndLoadADGInterstitial()
     }
 
-    //MARK: - AdManager
-    func setupAndLoadAMInterstitial() {
-        
+    func setupAndLoadADGInterstitial() {
         setupPBInterstitial()
-        setupAMInterstitial()
-        
+        setupADGInterstitial()
         loadInterstitial()
     }
     
-    func setupAndLoadAMInterstitialVAST() {
-
-        setupPBInterstitialVAST()
-        setupAMInterstitialVAST()
-        
-        loadInterstitial()
-    }
     
     func setupPBInterstitial() {
         Prebid.shared.prebidServerHost = PrebidHost.Appnexus
@@ -93,77 +48,19 @@ class InterstitialViewController: UIViewController, GADInterstitialDelegate, MPI
 
     }
     
-    func setupPBInterstitialVAST() {
-        Prebid.shared.prebidServerHost = .Rubicon
-        
-        Prebid.shared.prebidServerAccountId = "1001"
-        adUnit = VideoAdUnit(configId: "1001-1", size: CGSize(width: 300, height: 250), type: .inBanner)
-        
-        Prebid.shared.storedAuctionResponse = "sample_video_response"
-    }
-    
-    func setupAMInterstitial() {
-        amInterstitial = DFPInterstitial(adUnitID: "/19968336/PrebidMobileValidator_Interstitial")
-        amInterstitial.delegate = self
-    }
-    
-    func setupAMInterstitialVAST() {
-        amInterstitial = DFPInterstitial(adUnitID: "/5300653/test_adunit_vast_pavliuchyk")
-        amInterstitial.delegate = self
+    func setupADGInterstitial() {
+        interstitial = ADGInterstitial()
+        interstitial!.setLocationId("48549")    // 管理画面から払い出された広告枠ID
+        interstitial!.delegate = self
+        interstitial!.rootViewController = self
     }
     
     func loadInterstitial() {
-        print("Google Mobile Ads SDK version: \(DFPRequest.sdkVersion())")
+        print("Google Mobile Ads SDK version: \(ADGConstants.version())")
         
-        adUnit.fetchDemand(adObject: self.request) { (resultCode: ResultCode) in
-            print("Prebid demand fetch for DFP \(resultCode.name())")
-            self.amInterstitial!.load(self.request)
-        }
-    }
-
-    //MARK: - MoPub
-    func setupAndLoadMPInterstitial() {
-        setupPBInterstitial()
-        setupMPInterstitial()
-        
-        loadMPInterstitial()
-
-    }
-    
-    func setupAndLoadMPInterstitialVAST() {
-        setupPBInterstitialVAST()
-        setupMPInterstitialVAST()
-        
-        loadMPInterstitial()
-
-    }
-    
-    func setupMPInterstitial() {
-        
-        setupMPInterstitial(id: "2829868d308643edbec0795977f17437")
-    }
-    
-    func setupMPInterstitialVAST() {
-        
-        setupMPInterstitial(id: "fdafd17a5aeb41c798e6901a7f76f256")
-    }
-    
-    func setupMPInterstitial(id: String) {
-        let sdkConfig = MPMoPubConfiguration(adUnitIdForAppInitialization: id)
-        sdkConfig.globalMediationSettings = []
-
-        MoPub.sharedInstance().initializeSdk(with: sdkConfig) {}
-
-        self.mpInterstitial = MPInterstitialAdController(forAdUnitId: id)
-        self.mpInterstitial.delegate = self
-    }
-    
-    func loadMPInterstitial() {
-        // Do any additional setup after loading the view, typically from a nib.
-        adUnit.fetchDemand(adObject: mpInterstitial!) { (resultCode: ResultCode) in
-            print("Prebid demand fetch for mopub \(resultCode.name())")
-
-            self.mpInterstitial.loadAd()
+        adUnit.fetchDemand(adObject: self.interstitial!) { (resultCode: ResultCode) in
+            print("Prebid demand fetch for ADG \(resultCode.name())")
+            self.interstitial?.preload()
         }
     }
 
@@ -171,35 +68,33 @@ class InterstitialViewController: UIViewController, GADInterstitialDelegate, MPI
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
-    func interstitialWillPresentScreen(_ ad: GADInterstitial) {
-        print("Ad presented")
+}
+extension InterstitialViewController: ADGInterstitialDelegate {
+    
+    func adgManagerViewControllerReceiveAd(_ adgManagerViewController: ADGManagerViewController) {
+        print("Received an ad.")
+        self.interstitial?.show()
     }
-
-    func interstitialDidDismissScreen(_ ad: GADInterstitial) {
-        // Send another GADRequest here
-        print("Ad dismissed")
-    }
-
-    func interstitialDidReceiveAd(_ ad: GADInterstitial) {
-
-        if (self.amInterstitial?.isReady ?? true) {
-            print("Ad ready")
-            self.amInterstitial?.present(fromRootViewController: self)
-        } else {
-            print("Ad not ready")
+    
+    func adgManagerViewControllerFailed(toReceiveAd adgManagerViewController: ADGManagerViewController, code: kADGErrorCode) {
+        print("Failed to receive an ad.")
+        // エラー時のリトライは特段の理由がない限り必ず記述するようにしてください。
+        switch code {
+        case .adgErrorCodeNeedConnection, // ネットワーク不通
+        .adgErrorCodeExceedLimit, // エラー多発
+        .adgErrorCodeNoAd: // 広告レスポンスなし
+            break
+        default:
+            self.interstitial?.preload()
         }
     }
-
-    func interstitialDidLoadAd(_ interstitial: MPInterstitialAdController!) {
-        print("Ad ready")
-        if (self.mpInterstitial.ready ) {
-            self.mpInterstitial.show(from: self)
-        }
+    
+    func adgManagerViewControllerDidTapAd(_ adgManagerViewController: ADGManagerViewController) {
+        print("Did tap an ad.")
     }
-
-    func interstitialDidFail(toLoadAd interstitial: MPInterstitialAdController!) {
-        print("Ad not ready")
+    
+    func adgInterstitialClose() {
+        print("Closed interstitial ads")
     }
-
+    
 }
